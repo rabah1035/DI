@@ -1,360 +1,593 @@
-import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fiche Demande & Rapport d'Intervention</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    #pdf-container {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 10mm 12mm;
+      background: white;
+      color: #000;
+      font-family: Arial, Helvetica, sans-serif;
+      box-sizing: border-box;
+      margin: 0 auto;
+    }
+    .pdf-title {
+      text-align: center;
+      font-size: 15pt;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    .pdf-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 5px;
+    }
+    .pdf-table td {
+      padding: 2.5px 3px;
+      vertical-align: middle;
+      font-size: 8.5pt;
+    }
+    .pdf-label {
+      font-weight: bold;
+      font-size: 8pt;
+      white-space: nowrap;
+    }
+    .pdf-box {
+      border: 1px solid #000;
+      height: 20px;
+      padding: 1px 4px;
+      font-size: 8.5pt;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .pdf-chk-box {
+      display: inline-block;
+      width: 11px;
+      height: 11px;
+      border: 1px solid #000;
+      margin-right: 3px;
+      vertical-align: middle;
+      text-align: center;
+      line-height: 10px;
+      font-size: 9px;
+      font-weight: bold;
+    }
+    .pdf-grid-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 6px 0;
+    }
+    .pdf-grid-table th {
+      border: 1px solid #000;
+      background-color: #e0e0e0;
+      font-size: 7.5pt;
+      padding: 4px 2px;
+      text-align: center;
+    }
+    .pdf-grid-table td {
+      border: 1px solid #000;
+      height: 20px;
+      font-size: 8pt;
+      padding: 2px 4px;
+      text-align: center;
+    }
+    .pdf-desc-box {
+      border: 1px solid #000;
+      min-height: 60px;
+      padding: 4px;
+      font-size: 8.5pt;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 pb-16">
 
-void main() => runApp(const MaintenanceApp());
+  <header class="bg-blue-700 text-white p-4 shadow-md sticky top-0 z-50">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <h1 class="text-base font-bold sm:text-lg">GMAO Mobile - Fiche d'Intervention</h1>
+      <button onclick="generateAndSharePDF()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow flex items-center gap-2">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.699c.971.532 1.77.814 2.797.814 3.179 0 5.767-2.587 5.768-5.766 0-3.18-2.588-5.766-5.769-5.766zm0-2.172c4.418 0 8 3.582 8 8 0 4.419-3.582 8-8 8-1.42 0-2.75-.371-3.906-1.016l-4.125 1.082 1.101-4.025c-.694-1.196-1.07-2.574-1.07-4.041 0-4.418 3.582-8 8-8z"/></svg>
+        إرسال عبر واتساب (PDF)
+      </button>
+    </div>
+  </header>
 
-class MaintenanceApp extends StatelessWidget {
-  const MaintenanceApp({Key? key}) : super(key: key);
+  <main class="max-w-4xl mx-auto p-4 space-y-6">
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Fiche Intervention GMAO',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: const FormScreen(),
-    );
-  }
-}
+    <section class="bg-white rounded-xl shadow p-5 border border-slate-200">
+      <h2 class="text-lg font-bold text-blue-800 border-b pb-2 mb-4">1. Fiche Demande Intervention</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">DIN</label>
+          <input type="text" id="in_din" placeholder="ex: 2026/01" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Date DIN</label>
+          <input type="text" id="in_date_din" placeholder="JJ/MM/AAAA" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+        <div class="flex items-center pt-5">
+          <label class="inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="in_preventive" class="w-5 h-5 text-blue-600 rounded" onchange="syncPreview()">
+            <span class="ml-2 text-sm font-bold text-gray-700">PREVENTIVE</span>
+          </label>
+        </div>
+      </div>
 
-class FormScreen extends StatefulWidget {
-  const FormScreen({Key? key}) : super(key: key);
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">EQUIPEMENT</label>
+          <input type="text" id="in_equipement" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">STATION</label>
+          <input type="text" id="in_station" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+      </div>
 
-  @override
-  _FormScreenState createState() => _FormScreenState();
-}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">RESP. MACHINE</label>
+          <input type="text" id="in_resp_machine" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">ASSISTANT</label>
+          <input type="text" id="in_assistant" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+      </div>
 
-class _FormScreenState extends State {
-  // التحكم بالحقول
-  final _dinController = TextEditingController();
-  final _dateDinController = TextEditingController();
-  final _equipementController = TextEditingController();
-  final _stationController = TextEditingController();
-  bool _isPreventive = false;
+      <div class="space-y-4 mb-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">SOUS-TRAITANT</label>
+          <input type="text" id="in_soustraitant" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">INTERVENANTS</label>
+          <input type="text" id="in_intervenants" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+      </div>
 
-  final _respMachineController = TextEditingController();
-  final _assistantController = TextEditingController();
-  final _sousTraitantController = TextEditingController();
-  final _intervenantsController = TextEditingController();
-  final _respMaintController = TextEditingController();
-  final _chefEqpController = TextEditingController();
-  final _descController = TextEditingController();
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">RESP. MAINT.</label>
+          <input type="text" id="in_resp_maint" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">CHEF EQP</label>
+          <input type="text" id="in_chef_eqp" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+      </div>
 
-  // Rapport
-  final _dateArretController = TextEditingController();
-  final _ofNoController = TextEditingController();
-  final _compteurController = TextEditingController();
-  final _dateRepriseController = TextEditingController();
-  final _dureeArretController = TextEditingController();
-  final _dureeIntervController = TextEditingController();
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">DESCRIPTION</label>
+        <textarea id="in_description" rows="2" class="w-full border rounded p-2 text-sm" oninput="syncPreview()"></textarea>
+      </div>
+    </section>
 
-  // مصفوفة القطع (5 أسطر)
-  final List> _pieces = List.generate(
-    5,
-    (i) => {
-      'ref': TextEditingController(),
-      'des': TextEditingController(),
-      'qte': TextEditingController(),
-      'pau': TextEditingController(),
-      'doc': TextEditingController(),
-    },
-  );
+    <section class="bg-white rounded-xl shadow p-5 border border-slate-200">
+      <h2 class="text-lg font-bold text-blue-800 border-b pb-2 mb-4">2. Rapport d'Intervention</h2>
 
-  final _rapportIntervController = TextEditingController();
-  final _avisMaintController = TextEditingController();
+      <div class="mb-4">
+        <label class="block text-xs font-semibold text-gray-600 mb-2">TYPE D'INTERVENTION</label>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+          <label class="flex items-center gap-1"><input type="checkbox" name="type_interv" value="Mecanique" onchange="syncPreview()"> Mécanique</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="type_interv" value="Electrique" onchange="syncPreview()"> Electrique</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="type_interv" value="Pneumatique" onchange="syncPreview()"> Pneumatique</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="type_interv" value="Tolerie" onchange="syncPreview()"> Tôlerie</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="type_interv" value="Vidange" onchange="syncPreview()"> Vidange</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="type_interv" value="Nettoyage" onchange="syncPreview()"> Nettoyage</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="type_interv" value="Plomberie" onchange="syncPreview()"> Plomberie</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="type_interv" value="Maconnerie" onchange="syncPreview()"> Maçonnerie</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="type_interv" value="ElectroMecanique" onchange="syncPreview()"> Electro-mécanique</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="type_interv" value="Multiple" onchange="syncPreview()"> Multiple</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="type_interv" value="ChangFormat" onchange="syncPreview()"> Chang. Format</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="type_interv" value="Informatique" onchange="syncPreview()"> Informatique</label>
+          <label class="flex items-center gap-1"><input type="checkbox" name="type_interv" value="Autre" onchange="syncPreview()"> Autre</label>
+        </div>
+      </div>
 
-  // دالة بناء ومشاركة ملف PDF عبر واتساب
-  Future _generateAndSharePDF() async {
-    final pdf = pw.Document();
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">DATE ARRÊT</label>
+          <input type="text" id="in_date_arret" placeholder="JJ/MM/AAAA HH:MM" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">OF N°</label>
+          <input type="text" id="in_of_no" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">COMPTEUR ACTUEL</label>
+          <input type="text" id="in_compteur" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+      </div>
 
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.symmetric(horizontal: 25, vertical: 25),
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              // Partie 1: Fiche Demande Intervention
-              pw.Center(
-                child: pw.Text('Fiche Demande Intervention',
-                    style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-              ),
-              pw.SizedBox(height: 6),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.SizedBox(width: 80),
-                  pw.Text('DIN : ${_dinController.text}',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                  pw.Row(children: [
-                    pw.Text('Date DIN : ', style: const pw.TextStyle(fontSize: 9)),
-                    pw.Container(
-                      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.8)),
-                      child: pw.Text(_dateDinController.text.isEmpty ? '../../....' : _dateDinController.text,
-                          style: const pw.TextStyle(fontSize: 9)),
-                    ),
-                  ]),
-                ],
-              ),
-              pw.SizedBox(height: 5),
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">DATE REPRISE</label>
+          <input type="text" id="in_date_reprise" placeholder="JJ/MM/AAAA HH:MM" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">DUREE ARRÊT (H)</label>
+          <input type="text" id="in_duree_arret" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">DURRE INTERV. (H)</label>
+          <input type="text" id="in_duree_interv" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+      </div>
 
-              // Row 1: Equipement + Station + Preventive
-              pw.Row(children: [
-                pw.Text('EQUIPEMENT : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                pw.Expanded(child: _buildPdfBox(_equipementController.text)),
-                pw.SizedBox(width: 8),
-                pw.Text('STATION : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                pw.Container(width: 100, child: _buildPdfBox(_stationController.text)),
-                pw.SizedBox(width: 8),
-                pw.Container(
-                  width: 10,
-                  height: 10,
-                  decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.8)),
-                  child: _isPreventive ? pw.Center(child: pw.Text('X', style: const pw.TextStyle(fontSize: 7))) : null,
-                ),
-                pw.SizedBox(width: 3),
-                pw.Text('PREVENTIVE', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold)),
-              ]),
-              pw.SizedBox(height: 4),
+      <div class="mb-4">
+        <label class="block text-xs font-semibold text-gray-600 mb-1">TABLEAU DES PIECES</label>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left border border-gray-300">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="p-2 border">No</th>
+                <th class="p-2 border">Réf Composant</th>
+                <th class="p-2 border">Désignation</th>
+                <th class="p-2 border w-16">Qté</th>
+                <th class="p-2 border w-20">P.A.U</th>
+                <th class="p-2 border">Réf Doc/Lot</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="p-1 border text-center font-bold">01</td><td class="p-1 border"><input type="text" id="c_ref_1" class="w-full border-0 p-1" oninput="syncPreview()"></td><td class="p-1 border"><input type="text" id="c_des_1" class="w-full border-0 p-1" oninput="syncPreview()"></td><td class="p-1 border"><input type="number" id="c_qte_1" class="w-full border-0 p-1" oninput="calcTotals(); syncPreview()"></td><td class="p-1 border"><input type="number" id="c_pau_1" class="w-full border-0 p-1" oninput="calcTotals(); syncPreview()"></td><td class="p-1 border"><input type="text" id="c_doc_1" class="w-full border-0 p-1" oninput="syncPreview()"></td></tr>
+              <tr><td class="p-1 border text-center font-bold">02</td><td class="p-1 border"><input type="text" id="c_ref_2" class="w-full border-0 p-1" oninput="syncPreview()"></td><td class="p-1 border"><input type="text" id="c_des_2" class="w-full border-0 p-1" oninput="syncPreview()"></td><td class="p-1 border"><input type="number" id="c_qte_2" class="w-full border-0 p-1" oninput="calcTotals(); syncPreview()"></td><td class="p-1 border"><input type="number" id="c_pau_2" class="w-full border-0 p-1" oninput="calcTotals(); syncPreview()"></td><td class="p-1 border"><input type="text" id="c_doc_2" class="w-full border-0 p-1" oninput="syncPreview()"></td></tr>
+              <tr><td class="p-1 border text-center font-bold">03</td><td class="p-1 border"><input type="text" id="c_ref_3" class="w-full border-0 p-1" oninput="syncPreview()"></td><td class="p-1 border"><input type="text" id="c_des_3" class="w-full border-0 p-1" oninput="syncPreview()"></td><td class="p-1 border"><input type="number" id="c_qte_3" class="w-full border-0 p-1" oninput="calcTotals(); syncPreview()"></td><td class="p-1 border"><input type="number" id="c_pau_3" class="w-full border-0 p-1" oninput="calcTotals(); syncPreview()"></td><td class="p-1 border"><input type="text" id="c_doc_3" class="w-full border-0 p-1" oninput="syncPreview()"></td></tr>
+              <tr><td class="p-1 border text-center font-bold">04</td><td class="p-1 border"><input type="text" id="c_ref_4" class="w-full border-0 p-1" oninput="syncPreview()"></td><td class="p-1 border"><input type="text" id="c_des_4" class="w-full border-0 p-1" oninput="syncPreview()"></td><td class="p-1 border"><input type="number" id="c_qte_4" class="w-full border-0 p-1" oninput="calcTotals(); syncPreview()"></td><td class="p-1 border"><input type="number" id="c_pau_4" class="w-full border-0 p-1" oninput="calcTotals(); syncPreview()"></td><td class="p-1 border"><input type="text" id="c_doc_4" class="w-full border-0 p-1" oninput="syncPreview()"></td></tr>
+              <tr><td class="p-1 border text-center font-bold">05</td><td class="p-1 border"><input type="text" id="c_ref_5" class="w-full border-0 p-1" oninput="syncPreview()"></td><td class="p-1 border"><input type="text" id="c_des_5" class="w-full border-0 p-1" oninput="syncPreview()"></td><td class="p-1 border"><input type="number" id="c_qte_5" class="w-full border-0 p-1" oninput="calcTotals(); syncPreview()"></td><td class="p-1 border"><input type="number" id="c_pau_5" class="w-full border-0 p-1" oninput="calcTotals(); syncPreview()"></td><td class="p-1 border"><input type="text" id="c_doc_5" class="w-full border-0 p-1" oninput="syncPreview()"></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-              // Resp machine + assistant
-              pw.Row(children: [
-                pw.Text('RESP. MACHINE : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                pw.Expanded(child: _buildPdfBox('- ${_respMachineController.text}')),
-                pw.SizedBox(width: 8),
-                pw.Text('ASSISTANT : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                pw.Expanded(child: _buildPdfBox('- ${_assistantController.text}')),
-              ]),
-              pw.SizedBox(height: 4),
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">NOMBRE DE PIECES</label>
+          <input type="text" id="in_nb_pieces" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">COÛTS PIECES</label>
+          <input type="text" id="in_cout_pieces" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">COÛTS M.OEUVRE</label>
+          <input type="text" id="in_cout_mo" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+        </div>
+      </div>
 
-              // Sous-traitant & Intervenants
-              pw.Row(children: [
-                pw.Container(width: 85, child: pw.Text('SOUS-TRAITANT : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
-                pw.Expanded(child: _buildPdfBox(_sousTraitantController.text)),
-              ]),
-              pw.SizedBox(height: 4),
-              pw.Row(children: [
-                pw.Container(width: 85, child: pw.Text('INTERVENANTS : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
-                pw.Expanded(child: _buildPdfBox(_intervenantsController.text)),
-              ]),
-              pw.SizedBox(height: 4),
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">COÛTS TOTAL INTERVENTION</label>
+          <input type="text" id="in_cout_total" class="w-full border rounded p-2 text-sm font-bold bg-blue-50" oninput="syncPreview()">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">MONTANT TOTAL PAYE</label>
+          <input type="text" id="in_montant_paye" class="w-full border rounded p-2 text-sm font-bold bg-gray-100" oninput="syncPreview()">
+        </div>
+      </div>
 
-              // Resp maint + Chef eqp
-              pw.Row(children: [
-                pw.Text('RESP. MAINT. : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                pw.Expanded(child: _buildPdfBox('- ${_respMaintController.text}')),
-                pw.SizedBox(width: 8),
-                pw.Text('CHEF EQP : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                pw.Expanded(child: _buildPdfBox('- ${_chefEqpController.text}')),
-              ]),
-              pw.SizedBox(height: 4),
+      <div class="mb-4">
+        <label class="block text-xs font-semibold text-gray-600 mb-1">RAPPORT INTERVENTION</label>
+        <textarea id="in_rapport_interv" rows="2" class="w-full border rounded p-2 text-sm" oninput="syncPreview()"></textarea>
+      </div>
 
-              // Description
-              pw.Container(
-                width: double.infinity,
-                height: 55,
-                padding: const pw.EdgeInsets.all(4),
-                decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.8)),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text('DESCRIPTION : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                    pw.Text(_descController.text, style: const pw.TextStyle(fontSize: 8)),
-                  ],
-                ),
-              ),
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">AVIS RESP. MAINT.</label>
+        <input type="text" id="in_avis_maint" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+      </div>
+    </section>
 
-              pw.SizedBox(height: 10),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
-                children: [
-                  pw.Text('RESP. MACHINE', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
-                  pw.Text('RESP. MAINT.', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold)),
-                ],
-              ),
+    <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+      <button onclick="generateAndSharePDF()" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg flex items-center justify-center gap-2">
+        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.699c.971.532 1.77.814 2.797.814 3.179 0 5.767-2.587 5.768-5.766 0-3.18-2.588-5.766-5.769-5.766zm0-2.172c4.418 0 8 3.582 8 8 0 4.419-3.582 8-8 8-1.42 0-2.75-.371-3.906-1.016l-4.125 1.082 1.101-4.025c-.694-1.196-1.07-2.574-1.07-4.041 0-4.418 3.582-8 8-8z"/></svg>
+        إرسال عبر واتساب بصيغة PDF
+      </button>
+      <button onclick="downloadDirectPDF()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg">
+        تحميل PDF مباشرة
+      </button>
+    </div>
 
-              // Séparateur en pointillés
-              pw.SizedBox(height: 6),
-              pw.Divider(borderStyle: pw.BorderStyle.dotted, thickness: 1),
-              pw.SizedBox(height: 4),
+    <div style="overflow-x: auto; background: #64748b; padding: 20px; border-radius: 12px;">
+      <p class="text-white text-xs font-bold mb-2 text-center">معاينة ورقة A4 الرسمية (Aperçu Document A4)</p>
+      
+      <div id="pdf-container">
+        <div class="pdf-title">Fiche Demande Intervention</div>
 
-              // Partie 2: Rapport d'Intervention
-              pw.Center(
-                child: pw.Text("Rapport d'Intervention",
-                    style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-              ),
-              pw.SizedBox(height: 6),
+        <table style="width: 100%; margin-bottom: 6px;">
+          <tr>
+            <td style="width: 30%;"></td>
+            <td style="width: 40%; text-align: center; font-weight: bold; font-size: 10pt;">
+              DIN : <span id="out_din">........</span>
+            </td>
+            <td style="width: 30%; text-align: right; font-size: 8.5pt;">
+              <span class="pdf-label">Date DIN : </span>
+              <span id="out_date_din" style="border: 1px solid #000; padding: 2px 8px;">../../....</span>
+            </td>
+          </tr>
+        </table>
 
-              // Dates & OF & Compteur
-              pw.Row(children: [
-                pw.Text('DATE ARRÊT : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                pw.Container(width: 110, child: _buildPdfBox(_dateArretController.text)),
-                pw.SizedBox(width: 6),
-                pw.Text('OF No : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                pw.Container(width: 60, child: _buildPdfBox(_ofNoController.text)),
-                pw.SizedBox(width: 6),
-                pw.Text('COMPTEUR ACTUEL : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                pw.Expanded(child: _buildPdfBox(_compteurController.text)),
-              ]),
-              pw.SizedBox(height: 4),
+        <table class="pdf-table">
+          <tr>
+            <td style="width: 12%;" class="pdf-label">EQUIPEMENT :</td>
+            <td style="width: 36%;"><div class="pdf-box" id="out_equipement"></div></td>
+            <td style="width: 10%; text-align: right;" class="pdf-label">STATION :</td>
+            <td style="width: 24%;"><div class="pdf-box" id="out_station"></div></td>
+            <td style="width: 18%;">
+              <span class="pdf-chk-box" id="out_chk_prev"></span>
+              <span class="pdf-label">PREVENTIVE</span>
+            </td>
+          </tr>
+        </table>
 
-              pw.Row(children: [
-                pw.Text('DATE REPRISE : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                pw.Container(width: 110, child: _buildPdfBox(_dateRepriseController.text)),
-                pw.SizedBox(width: 6),
-                pw.Text('DUREE ARRÊT (H) : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                pw.Container(width: 50, child: _buildPdfBox(_dureeArretController.text)),
-                pw.SizedBox(width: 6),
-                pw.Text('DURRE INTERV. (H) : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                pw.Expanded(child: _buildPdfBox(_dureeIntervController.text)),
-              ]),
-              pw.SizedBox(height: 6),
+        <table class="pdf-table">
+          <tr>
+            <td style="width: 15%;" class="pdf-label">RESP. MACHINE :</td>
+            <td style="width: 35%;"><div class="pdf-box" id="out_resp_machine">-</div></td>
+            <td style="width: 12%;" class="pdf-label">ASSISTANT :</td>
+            <td style="width: 38%;"><div class="pdf-box" id="out_assistant">-</div></td>
+          </tr>
+        </table>
 
-              // Tableau des composants
-              pw.Table(
-                border: pw.TableBorder.all(width: 0.8),
-                columnWidths: {
-                  0: const pw.FixedColumnWidth(25),
-                  1: const pw.FlexColumnWidth(2.5),
-                  2: const pw.FlexColumnWidth(3.5),
-                  3: const pw.FlexColumnWidth(1),
-                  4: const pw.FlexColumnWidth(1),
-                  5: const pw.FlexColumnWidth(1.2),
-                },
-                children: [
-                  pw.TableRow(
-                    decoration: const pw.BoxDecoration(color: PdfColors.grey300),
-                    children: ['No', 'Réf Composant', 'Désignation', 'Quantité', 'P.A.U', 'RéfDoc/Lot']
-                        .map((title) => pw.Container(
-                              padding: const pw.EdgeInsets.symmetric(vertical: 3),
-                              child: pw.Center(
-                                child: pw.Text(title, style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold)),
-                              ),
-                            ))
-                        .toList(),
-                  ),
-                  ...List.generate(5, (index) {
-                    final row = _pieces[index];
-                    return pw.TableRow(
-                      children: [
-                        pw.Center(child: pw.Text('0${index + 1}', style: const pw.TextStyle(fontSize: 7.5))),
-                        pw.Padding(padding: const pw.EdgeInsets.all(2), child: pw.Text(row['ref']!.text, style: const pw.TextStyle(fontSize: 7.5))),
-                        pw.Padding(padding: const pw.EdgeInsets.all(2), child: pw.Text(row['des']!.text, style: const pw.TextStyle(fontSize: 7.5))),
-                        pw.Center(child: pw.Text(row['qte']!.text, style: const pw.TextStyle(fontSize: 7.5))),
-                        pw.Center(child: pw.Text(row['pau']!.text, style: const pw.TextStyle(fontSize: 7.5))),
-                        pw.Center(child: pw.Text(row['doc']!.text, style: const pw.TextStyle(fontSize: 7.5))),
-                      ],
-                    );
-                  }),
-                ],
-              ),
-              pw.SizedBox(height: 6),
+        <table class="pdf-table">
+          <tr>
+            <td style="width: 15%;" class="pdf-label">SOUS-TRAITANT :</td>
+            <td style="width: 85%;"><div class="pdf-box" id="out_soustraitant"></div></td>
+          </tr>
+          <tr>
+            <td class="pdf-label">INTERVENANTS :</td>
+            <td><div class="pdf-box" id="out_intervenants"></div></td>
+          </tr>
+        </table>
 
-              // Rapport intervention box
-              pw.Container(
-                width: double.infinity,
-                height: 45,
-                padding: const pw.EdgeInsets.all(4),
-                decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.8)),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text('RAPPORT INTERVENTION : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                    pw.Text(_rapportIntervController.text, style: const pw.TextStyle(fontSize: 8)),
-                  ],
-                ),
-              ),
-              pw.SizedBox(height: 4),
+        <table class="pdf-table">
+          <tr>
+            <td style="width: 15%;" class="pdf-label">RESP. MAINT. :</td>
+            <td style="width: 35%;"><div class="pdf-box" id="out_resp_maint">-</div></td>
+            <td style="width: 12%;" class="pdf-label">CHEF EQP :</td>
+            <td style="width: 38%;"><div class="pdf-box" id="out_chef_eqp">-</div></td>
+          </tr>
+        </table>
 
-              pw.Row(children: [
-                pw.Text('AVIS RESP. MAINT. : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                pw.Expanded(
-                  child: pw.Container(
-                    decoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(style: pw.BorderStyle.dotted, width: 0.8))),
-                    child: pw.Text(_avisMaintController.text, style: const pw.TextStyle(fontSize: 8)),
-                  ),
-                ),
-              ]),
+        <div class="pdf-desc-box">
+          <div class="pdf-label" style="margin-bottom: 2px;">DESCRIPTION :</div>
+          <div id="out_description" style="min-height: 40px;"></div>
+        </div>
 
-              pw.Spacer(),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
-                children: [
-                  pw.Text('RESP. MACHINE', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
-                  pw.Text('RESP. MAINT.', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold)),
-                ],
-              ),
-            ],
-          );
-        },
-      ),
-    );
+        <table style="width: 100%; margin-top: 14px; margin-bottom: 8px;">
+          <tr>
+            <td style="width: 50%; text-align: center; font-weight: bold; font-size: 8.5pt; text-decoration: underline;">RESP. MACHINE</td>
+            <td style="width: 50%; text-align: center; font-weight: bold; font-size: 8.5pt;">RESP. MAINT.</td>
+          </tr>
+        </table>
 
-    // حفظ الملف ومشاركته مباشرة عبر واتساب
-    final output = await getTemporaryDirectory();
-    final file = File('\({output.path}/Intervention_\){_dinController.text.replaceAll('/', '_')}.pdf');
-    await file.writeAsBytes(await pdf.save());
+        <div style="border-top: 1.5px dotted #666; margin: 10px 0;"></div>
 
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      text: 'Fiche Demande et Rapport d\'Intervention',
-    );
-  }
+        <div class="pdf-title" style="margin-top: 4px;">Rapport d'Intervention</div>
 
-  static pw.Widget _buildPdfBox(String text) {
-    return pw.Container(
-      height: 16,
-      padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-      decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.8)),
-      child: pw.Text(text, style: const pw.TextStyle(fontSize: 7.5)),
-    );
-  }
+        <div style="font-size: 8pt; margin-bottom: 4px;">
+          <span class="pdf-label">TYPE D'INTERVENTION : </span>
+          <span class="pdf-chk-box" id="chk_Mecanique"></span><span style="font-weight:bold; margin-right:6px;">Mécanique</span>
+          <span class="pdf-chk-box" id="chk_Electrique"></span><span style="font-weight:bold; margin-right:6px;">Electrique</span>
+          <span class="pdf-chk-box" id="chk_Pneumatique"></span><span style="font-weight:bold; margin-right:6px;">Pneumatique</span>
+          <span class="pdf-chk-box" id="chk_Tolerie"></span><span style="font-weight:bold; margin-right:6px;">Tôlerie</span>
+          <span class="pdf-chk-box" id="chk_Vidange"></span><span style="font-weight:bold; margin-right:6px;">Vidange</span>
+          <span class="pdf-chk-box" id="chk_Nettoyage"></span><span style="font-weight:bold; margin-right:6px;">Nettoyage</span>
+        </div>
+        <div style="font-size: 8pt; margin-left: 20px; margin-bottom: 6px;">
+          <span class="pdf-chk-box" id="chk_Plomberie"></span><span style="font-weight:bold; margin-right:6px;">Plomberie</span>
+          <span class="pdf-chk-box" id="chk_Maconnerie"></span><span style="font-weight:bold; margin-right:6px;">Maçonnerie</span>
+          <span class="pdf-chk-box" id="chk_ElectroMecanique"></span><span style="font-weight:bold; margin-right:6px;">Electro-mécanique</span>
+          <span class="pdf-chk-box" id="chk_Multiple"></span><span style="font-weight:bold; margin-right:6px;">Multiple</span>
+          <span class="pdf-chk-box" id="chk_ChangFormat"></span><span style="font-weight:bold; margin-right:6px;">Chang. Format</span>
+          <span class="pdf-chk-box" id="chk_Informatique"></span><span style="font-weight:bold; margin-right:6px;">Informatique</span>
+          <span class="pdf-chk-box" id="chk_Autre"></span><span style="font-weight:bold;">Autre</span>
+        </div>
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Fiche Intervention GMAO'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: _generateAndSharePDF,
-          )
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(controller: _dinController, decoration: const InputDecoration(labelText: 'DIN')),
-            TextField(controller: _dateDinController, decoration: const InputDecoration(labelText: 'Date DIN (JJ/MM/AAAA)')),
-            TextField(controller: _equipementController, decoration: const InputDecoration(labelText: 'EQUIPEMENT')),
-            TextField(controller: _stationController, decoration: const InputDecoration(labelText: 'STATION')),
-            CheckboxListTile(
-              title: const Text('PREVENTIVE'),
-              value: _isPreventive,
-              onChanged: (val) => setState(() => _isPreventive = val ?? false),
-            ),
-            TextField(controller: _descController, maxLines: 3, decoration: const InputDecoration(labelText: 'Description')),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              icon: const Icon(Icons.send, color: Colors.white),
-              label: const Text('إنشاء ومشاركة عبر واتساب (PDF)', style: TextStyle(fontSize: 16, color: Colors.white)),
-              onPressed: _generateAndSharePDF,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+        <table class="pdf-table" style="margin-top: 4px;">
+          <tr>
+            <td style="width: 14%;" class="pdf-label">DATE ARRÊT :</td>
+            <td style="width: 26%;">
+              <div class="pdf-box" id="out_date_arret" style="justify-content: center; font-size: 8pt;">../../.... .. : ..</div>
+            </td>
+            <td style="width: 8%; text-align: right;" class="pdf-label">OF No :</td>
+            <td style="width: 16%;"><div class="pdf-box" id="out_of_no"></div></td>
+            <td style="width: 18%; text-align: right;" class="pdf-label">COMPTEUR ACTUEL :</td>
+            <td style="width: 18%;"><div class="pdf-box" id="out_compteur"></div></td>
+          </tr>
+          <tr>
+            <td class="pdf-label">DATE REPRISE :</td>
+            <td>
+              <div class="pdf-box" id="out_date_reprise" style="justify-content: center; font-size: 8pt;">../../.... .. : ..</div>
+            </td>
+            <td colspan="2">
+              <table style="width: 100%;">
+                <tr>
+                  <td class="pdf-label" style="text-align: right; padding-right: 3px;">DUREE ARRÊT (H) :</td>
+                  <td style="width: 50px;"><div class="pdf-box" id="out_duree_arret"></div></td>
+                </tr>
+              </table>
+            </td>
+            <td colspan="2">
+              <table style="width: 100%;">
+                <tr>
+                  <td class="pdf-label" style="text-align: right; padding-right: 3px;">DURRE INTERV. (H) :</td>
+                  <td style="width: 50px;"><div class="pdf-box" id="out_duree_interv"></div></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+
+        <table class="pdf-grid-table">
+          <thead>
+            <tr>
+              <th style="width: 5%;">No</th>
+              <th style="width: 25%;">Réf Composant</th>
+              <th style="width: 38%;">Désignation</th>
+              <th style="width: 10%;">Quantité</th>
+              <th style="width: 10%;">P.A.U</th>
+              <th style="width: 12%;">RéfDoc/Lot</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>01</td><td id="p_ref_1"></td><td id="p_des_1"></td><td id="p_qte_1"></td><td id="p_pau_1"></td><td id="p_doc_1"></td></tr>
+            <tr><td>02</td><td id="p_ref_2"></td><td id="p_des_2"></td><td id="p_qte_2"></td><td id="p_pau_2"></td><td id="p_doc_2"></td></tr>
+            <tr><td>03</td><td id="p_ref_3"></td><td id="p_des_3"></td><td id="p_qte_3"></td><td id="p_pau_3"></td><td id="p_doc_3"></td></tr>
+            <tr><td>04</td><td id="p_ref_4"></td><td id="p_des_4"></td><td id="p_qte_4"></td><td id="p_pau_4"></td><td id="p_doc_4"></td></tr>
+            <tr><td>05</td><td id="p_ref_5"></td><td id="p_des_5"></td><td id="p_qte_5"></td><td id="p_pau_5"></td><td id="p_doc_5"></td></tr>
+          </tbody>
+        </table>
+
+        <table class="pdf-table">
+          <tr>
+            <td class="pdf-label" style="width: 16%;">NOMBRE DE PIECES :</td>
+            <td style="width: 12%;"><div class="pdf-box" id="out_nb_pieces"></div></td>
+            <td class="pdf-label" style="width: 14%; text-align: right;">COÛTS PIECES :</td>
+            <td style="width: 16%;"><div class="pdf-box" id="out_cout_pieces"></div></td>
+            <td class="pdf-label" style="width: 18%; text-align: right;">COÛTS M.OEUVRE :</td>
+            <td style="width: 24%;"><div class="pdf-box" id="out_cout_mo"></div></td>
+          </tr>
+          <tr>
+            <td class="pdf-label" colspan="2">COÛTS TOTAL INTERVENTION :</td>
+            <td colspan="2"><div class="pdf-box" id="out_cout_total"></div></td>
+            <td class="pdf-label" style="text-align: right;">MONTANT TOTAL PAYE :</td>
+            <td><div class="pdf-box" id="out_montant_paye" style="background: #b0b0b0;"></div></td>
+          </tr>
+        </table>
+
+        <div class="pdf-desc-box" style="min-height: 48px;">
+          <div class="pdf-label" style="margin-bottom: 2px;">RAPPORT INTERVENTION :</div>
+          <div id="out_rapport_interv"></div>
+        </div>
+
+        <div style="margin-top: 6px; font-size: 8.5pt;">
+          <span class="pdf-label">AVIS RESP. MAINT. : </span>
+          <span id="out_avis_maint" style="border-bottom: 1px dotted #888; display: inline-block; width: 78%; min-height: 14px;"></span>
+        </div>
+
+        <table style="width: 100%; margin-top: 16px;">
+          <tr>
+            <td style="width: 50%; text-align: center; font-weight: bold; font-size: 8.5pt; text-decoration: underline;">RESP. MACHINE</td>
+            <td style="width: 50%; text-align: center; font-weight: bold; font-size: 8.5pt;">RESP. MAINT.</td>
+          </tr>
+        </table>
+
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    function syncPreview() {
+      document.getElementById('out_din').innerText = document.getElementById('in_din').value || '........';
+      document.getElementById('out_date_din').innerText = document.getElementById('in_date_din').value || '../../....';
+      document.getElementById('out_chk_prev').innerText = document.getElementById('in_preventive').checked ? 'X' : '';
+      document.getElementById('out_equipement').innerText = document.getElementById('in_equipement').value;
+      document.getElementById('out_station').innerText = document.getElementById('in_station').value;
+      document.getElementById('out_resp_machine').innerText = document.getElementById('in_resp_machine').value ? '- ' + document.getElementById('in_resp_machine').value : '-';
+      document.getElementById('out_assistant').innerText = document.getElementById('in_assistant').value ? '- ' + document.getElementById('in_assistant').value : '-';
+      document.getElementById('out_soustraitant').innerText = document.getElementById('in_soustraitant').value;
+      document.getElementById('out_intervenants').innerText = document.getElementById('in_intervenants').value;
+      document.getElementById('out_resp_maint').innerText = document.getElementById('in_resp_maint').value ? '- ' + document.getElementById('in_resp_maint').value : '-';
+      document.getElementById('out_chef_eqp').innerText = document.getElementById('in_chef_eqp').value ? '- ' + document.getElementById('in_chef_eqp').value : '-';
+      document.getElementById('out_description').innerText = document.getElementById('in_description').value;
+
+      const types = ['Mecanique', 'Electrique', 'Pneumatique', 'Tolerie', 'Vidange', 'Nettoyage', 'Plomberie', 'Maconnerie', 'ElectroMecanique', 'Multiple', 'ChangFormat', 'Informatique', 'Autre'];
+      types.forEach(t => {
+        const chk = document.querySelector(`input[name="type_interv"][value="${t}"]`);
+        const target = document.getElementById('chk_' + t);
+        if (target) target.innerText = (chk && chk.checked) ? 'X' : '';
+      });
+
+      document.getElementById('out_date_arret').innerText = document.getElementById('in_date_arret').value || '../../.... .. : ..';
+      document.getElementById('out_of_no').innerText = document.getElementById('in_of_no').value;
+      document.getElementById('out_compteur').innerText = document.getElementById('in_compteur').value;
+      document.getElementById('out_date_reprise').innerText = document.getElementById('in_date_reprise').value || '../../.... .. : ..';
+      document.getElementById('out_duree_arret').innerText = document.getElementById('in_duree_arret').value;
+      document.getElementById('out_duree_interv').innerText = document.getElementById('in_duree_interv').value;
+
+      for (let i = 1; i <= 5; i++) {
+        document.getElementById(`p_ref_${i}`).innerText = document.getElementById(`c_ref_${i}`).value;
+        document.getElementById(`p_des_${i}`).innerText = document.getElementById(`c_des_${i}`).value;
+        document.getElementById(`p_qte_${i}`).innerText = document.getElementById(`c_qte_${i}`).value;
+        document.getElementById(`p_pau_${i}`).innerText = document.getElementById(`c_pau_${i}`).value;
+        document.getElementById(`p_doc_${i}`).innerText = document.getElementById(`c_doc_${i}`).value;
+      }
+
+      document.getElementById('out_nb_pieces').innerText = document.getElementById('in_nb_pieces').value;
+      document.getElementById('out_cout_pieces').innerText = document.getElementById('in_cout_pieces').value;
+      document.getElementById('out_cout_mo').innerText = document.getElementById('in_cout_mo').value;
+      document.getElementById('out_cout_total').innerText = document.getElementById('in_cout_total').value;
+      document.getElementById('out_montant_paye').innerText = document.getElementById('in_montant_paye').value;
+      document.getElementById('out_rapport_interv').innerText = document.getElementById('in_rapport_interv').value;
+      document.getElementById('out_avis_maint').innerText = document.getElementById('in_avis_maint').value;
+    }
+
+    function calcTotals() {
+      let totalPieces = 0;
+      let totalCost = 0;
+      for (let i = 1; i <= 5; i++) {
+        const qte = parseFloat(document.getElementById(`c_qte_${i}`).value) || 0;
+        const pau = parseFloat(document.getElementById(`c_pau_${i}`).value) || 0;
+        if (qte > 0) totalPieces += qte;
+        totalCost += (qte * pau);
+      }
+      if (totalPieces > 0) document.getElementById('in_nb_pieces').value = totalPieces;
+      if (totalCost > 0) document.getElementById('in_cout_pieces').value = totalCost.toFixed(2);
+      
+      const moCost = parseFloat(document.getElementById('in_cout_mo').value) || 0;
+      if ((totalCost + moCost) > 0) document.getElementById('in_cout_total').value = (totalCost + moCost).toFixed(2);
+    }
+
+    async function downloadDirectPDF() {
+      syncPreview();
+      const element = document.getElementById('pdf-container');
+      const opt = {
+        margin:       [0, 0, 0, 0],
+        filename:     'Demande_Intervention_' + (document.getElementById('in_din').value || 'A4') + '.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(element).save();
+    }
+
+    async function generateAndSharePDF() {
+      syncPreview();
+      const element = document.getElementById('pdf-container');
+      const opt = {
+        margin:       [0, 0, 0, 0],
+        filename:     'Demande_Intervention_' + (document.getElementById('in_din').value || 'A4') + '.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      try {
+        const blob = await html2pdf().set(opt).from(element).output('blob');
+        const file = new File([blob], opt.filename, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: 'Fiche Demande & Rapport d'Intervention',
+            text: 'Veuillez trouver ci-joint la fiche d'intervention en format PDF.'
+          });
+        } else {
+          downloadDirectPDF();
+        }
+      } catch (e) {
+        downloadDirectPDF();
+      }
+    }
+  </script>
+</body>
+</html>
