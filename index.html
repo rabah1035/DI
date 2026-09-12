@@ -1,0 +1,360 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+
+void main() => runApp(const MaintenanceApp());
+
+class MaintenanceApp extends StatelessWidget {
+  const MaintenanceApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Fiche Intervention GMAO',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const FormScreen(),
+    );
+  }
+}
+
+class FormScreen extends StatefulWidget {
+  const FormScreen({Key? key}) : super(key: key);
+
+  @override
+  _FormScreenState createState() => _FormScreenState();
+}
+
+class _FormScreenState extends State {
+  // التحكم بالحقول
+  final _dinController = TextEditingController();
+  final _dateDinController = TextEditingController();
+  final _equipementController = TextEditingController();
+  final _stationController = TextEditingController();
+  bool _isPreventive = false;
+
+  final _respMachineController = TextEditingController();
+  final _assistantController = TextEditingController();
+  final _sousTraitantController = TextEditingController();
+  final _intervenantsController = TextEditingController();
+  final _respMaintController = TextEditingController();
+  final _chefEqpController = TextEditingController();
+  final _descController = TextEditingController();
+
+  // Rapport
+  final _dateArretController = TextEditingController();
+  final _ofNoController = TextEditingController();
+  final _compteurController = TextEditingController();
+  final _dateRepriseController = TextEditingController();
+  final _dureeArretController = TextEditingController();
+  final _dureeIntervController = TextEditingController();
+
+  // مصفوفة القطع (5 أسطر)
+  final List> _pieces = List.generate(
+    5,
+    (i) => {
+      'ref': TextEditingController(),
+      'des': TextEditingController(),
+      'qte': TextEditingController(),
+      'pau': TextEditingController(),
+      'doc': TextEditingController(),
+    },
+  );
+
+  final _rapportIntervController = TextEditingController();
+  final _avisMaintController = TextEditingController();
+
+  // دالة بناء ومشاركة ملف PDF عبر واتساب
+  Future _generateAndSharePDF() async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.symmetric(horizontal: 25, vertical: 25),
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Partie 1: Fiche Demande Intervention
+              pw.Center(
+                child: pw.Text('Fiche Demande Intervention',
+                    style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(height: 6),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.SizedBox(width: 80),
+                  pw.Text('DIN : ${_dinController.text}',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                  pw.Row(children: [
+                    pw.Text('Date DIN : ', style: const pw.TextStyle(fontSize: 9)),
+                    pw.Container(
+                      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.8)),
+                      child: pw.Text(_dateDinController.text.isEmpty ? '../../....' : _dateDinController.text,
+                          style: const pw.TextStyle(fontSize: 9)),
+                    ),
+                  ]),
+                ],
+              ),
+              pw.SizedBox(height: 5),
+
+              // Row 1: Equipement + Station + Preventive
+              pw.Row(children: [
+                pw.Text('EQUIPEMENT : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                pw.Expanded(child: _buildPdfBox(_equipementController.text)),
+                pw.SizedBox(width: 8),
+                pw.Text('STATION : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                pw.Container(width: 100, child: _buildPdfBox(_stationController.text)),
+                pw.SizedBox(width: 8),
+                pw.Container(
+                  width: 10,
+                  height: 10,
+                  decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.8)),
+                  child: _isPreventive ? pw.Center(child: pw.Text('X', style: const pw.TextStyle(fontSize: 7))) : null,
+                ),
+                pw.SizedBox(width: 3),
+                pw.Text('PREVENTIVE', style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold)),
+              ]),
+              pw.SizedBox(height: 4),
+
+              // Resp machine + assistant
+              pw.Row(children: [
+                pw.Text('RESP. MACHINE : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                pw.Expanded(child: _buildPdfBox('- ${_respMachineController.text}')),
+                pw.SizedBox(width: 8),
+                pw.Text('ASSISTANT : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                pw.Expanded(child: _buildPdfBox('- ${_assistantController.text}')),
+              ]),
+              pw.SizedBox(height: 4),
+
+              // Sous-traitant & Intervenants
+              pw.Row(children: [
+                pw.Container(width: 85, child: pw.Text('SOUS-TRAITANT : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
+                pw.Expanded(child: _buildPdfBox(_sousTraitantController.text)),
+              ]),
+              pw.SizedBox(height: 4),
+              pw.Row(children: [
+                pw.Container(width: 85, child: pw.Text('INTERVENANTS : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
+                pw.Expanded(child: _buildPdfBox(_intervenantsController.text)),
+              ]),
+              pw.SizedBox(height: 4),
+
+              // Resp maint + Chef eqp
+              pw.Row(children: [
+                pw.Text('RESP. MAINT. : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                pw.Expanded(child: _buildPdfBox('- ${_respMaintController.text}')),
+                pw.SizedBox(width: 8),
+                pw.Text('CHEF EQP : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                pw.Expanded(child: _buildPdfBox('- ${_chefEqpController.text}')),
+              ]),
+              pw.SizedBox(height: 4),
+
+              // Description
+              pw.Container(
+                width: double.infinity,
+                height: 55,
+                padding: const pw.EdgeInsets.all(4),
+                decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.8)),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('DESCRIPTION : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                    pw.Text(_descController.text, style: const pw.TextStyle(fontSize: 8)),
+                  ],
+                ),
+              ),
+
+              pw.SizedBox(height: 10),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+                children: [
+                  pw.Text('RESP. MACHINE', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
+                  pw.Text('RESP. MAINT.', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold)),
+                ],
+              ),
+
+              // Séparateur en pointillés
+              pw.SizedBox(height: 6),
+              pw.Divider(borderStyle: pw.BorderStyle.dotted, thickness: 1),
+              pw.SizedBox(height: 4),
+
+              // Partie 2: Rapport d'Intervention
+              pw.Center(
+                child: pw.Text("Rapport d'Intervention",
+                    style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+              ),
+              pw.SizedBox(height: 6),
+
+              // Dates & OF & Compteur
+              pw.Row(children: [
+                pw.Text('DATE ARRÊT : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                pw.Container(width: 110, child: _buildPdfBox(_dateArretController.text)),
+                pw.SizedBox(width: 6),
+                pw.Text('OF No : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                pw.Container(width: 60, child: _buildPdfBox(_ofNoController.text)),
+                pw.SizedBox(width: 6),
+                pw.Text('COMPTEUR ACTUEL : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                pw.Expanded(child: _buildPdfBox(_compteurController.text)),
+              ]),
+              pw.SizedBox(height: 4),
+
+              pw.Row(children: [
+                pw.Text('DATE REPRISE : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                pw.Container(width: 110, child: _buildPdfBox(_dateRepriseController.text)),
+                pw.SizedBox(width: 6),
+                pw.Text('DUREE ARRÊT (H) : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                pw.Container(width: 50, child: _buildPdfBox(_dureeArretController.text)),
+                pw.SizedBox(width: 6),
+                pw.Text('DURRE INTERV. (H) : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                pw.Expanded(child: _buildPdfBox(_dureeIntervController.text)),
+              ]),
+              pw.SizedBox(height: 6),
+
+              // Tableau des composants
+              pw.Table(
+                border: pw.TableBorder.all(width: 0.8),
+                columnWidths: {
+                  0: const pw.FixedColumnWidth(25),
+                  1: const pw.FlexColumnWidth(2.5),
+                  2: const pw.FlexColumnWidth(3.5),
+                  3: const pw.FlexColumnWidth(1),
+                  4: const pw.FlexColumnWidth(1),
+                  5: const pw.FlexColumnWidth(1.2),
+                },
+                children: [
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(color: PdfColors.grey300),
+                    children: ['No', 'Réf Composant', 'Désignation', 'Quantité', 'P.A.U', 'RéfDoc/Lot']
+                        .map((title) => pw.Container(
+                              padding: const pw.EdgeInsets.symmetric(vertical: 3),
+                              child: pw.Center(
+                                child: pw.Text(title, style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold)),
+                              ),
+                            ))
+                        .toList(),
+                  ),
+                  ...List.generate(5, (index) {
+                    final row = _pieces[index];
+                    return pw.TableRow(
+                      children: [
+                        pw.Center(child: pw.Text('0${index + 1}', style: const pw.TextStyle(fontSize: 7.5))),
+                        pw.Padding(padding: const pw.EdgeInsets.all(2), child: pw.Text(row['ref']!.text, style: const pw.TextStyle(fontSize: 7.5))),
+                        pw.Padding(padding: const pw.EdgeInsets.all(2), child: pw.Text(row['des']!.text, style: const pw.TextStyle(fontSize: 7.5))),
+                        pw.Center(child: pw.Text(row['qte']!.text, style: const pw.TextStyle(fontSize: 7.5))),
+                        pw.Center(child: pw.Text(row['pau']!.text, style: const pw.TextStyle(fontSize: 7.5))),
+                        pw.Center(child: pw.Text(row['doc']!.text, style: const pw.TextStyle(fontSize: 7.5))),
+                      ],
+                    );
+                  }),
+                ],
+              ),
+              pw.SizedBox(height: 6),
+
+              // Rapport intervention box
+              pw.Container(
+                width: double.infinity,
+                height: 45,
+                padding: const pw.EdgeInsets.all(4),
+                decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.8)),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text('RAPPORT INTERVENTION : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                    pw.Text(_rapportIntervController.text, style: const pw.TextStyle(fontSize: 8)),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 4),
+
+              pw.Row(children: [
+                pw.Text('AVIS RESP. MAINT. : ', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                pw.Expanded(
+                  child: pw.Container(
+                    decoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(style: pw.BorderStyle.dotted, width: 0.8))),
+                    child: pw.Text(_avisMaintController.text, style: const pw.TextStyle(fontSize: 8)),
+                  ),
+                ),
+              ]),
+
+              pw.Spacer(),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+                children: [
+                  pw.Text('RESP. MACHINE', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold, decoration: pw.TextDecoration.underline)),
+                  pw.Text('RESP. MAINT.', style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold)),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    // حفظ الملف ومشاركته مباشرة عبر واتساب
+    final output = await getTemporaryDirectory();
+    final file = File('\({output.path}/Intervention_\){_dinController.text.replaceAll('/', '_')}.pdf');
+    await file.writeAsBytes(await pdf.save());
+
+    await Share.shareXFiles(
+      [XFile(file.path)],
+      text: 'Fiche Demande et Rapport d\'Intervention',
+    );
+  }
+
+  static pw.Widget _buildPdfBox(String text) {
+    return pw.Container(
+      height: 16,
+      padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.8)),
+      child: pw.Text(text, style: const pw.TextStyle(fontSize: 7.5)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Fiche Intervention GMAO'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: _generateAndSharePDF,
+          )
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(controller: _dinController, decoration: const InputDecoration(labelText: 'DIN')),
+            TextField(controller: _dateDinController, decoration: const InputDecoration(labelText: 'Date DIN (JJ/MM/AAAA)')),
+            TextField(controller: _equipementController, decoration: const InputDecoration(labelText: 'EQUIPEMENT')),
+            TextField(controller: _stationController, decoration: const InputDecoration(labelText: 'STATION')),
+            CheckboxListTile(
+              title: const Text('PREVENTIVE'),
+              value: _isPreventive,
+              onChanged: (val) => setState(() => _isPreventive = val ?? false),
+            ),
+            TextField(controller: _descController, maxLines: 3, decoration: const InputDecoration(labelText: 'Description')),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              icon: const Icon(Icons.send, color: Colors.white),
+              label: const Text('إنشاء ومشاركة عبر واتساب (PDF)', style: TextStyle(fontSize: 16, color: Colors.white)),
+              onPressed: _generateAndSharePDF,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
