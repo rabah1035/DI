@@ -103,8 +103,14 @@
 
   <main class="max-w-4xl mx-auto p-4 space-y-6">
 
+    <!-- Fiche Demande Intervention -->
     <section class="bg-white rounded-xl shadow p-5 border border-slate-200">
-      <h2 class="text-lg font-bold text-blue-800 border-b pb-2 mb-4">1. Fiche Demande Intervention</h2>
+      <div class="flex items-center justify-between border-b pb-2 mb-4">
+        <h2 class="text-lg font-bold text-blue-800">1. Fiche Demande Intervention</h2>
+        <button type="button" onclick="setAutomaticDateTime()" class="text-xs bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold px-3 py-1.5 rounded-lg border border-blue-300">
+          تحديث الوقت والتاريخ الآن ⏱️
+        </button>
+      </div>
       
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div>
@@ -112,8 +118,8 @@
           <input type="text" id="in_din" placeholder="ex: 2026/01" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1">Date DIN</label>
-          <input type="text" id="in_date_din" placeholder="JJ/MM/AAAA" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Date DIN (تلقائي)</label>
+          <input type="text" id="in_date_din" placeholder="JJ/MM/AAAA" class="w-full border rounded p-2 text-sm bg-blue-50 font-medium" oninput="syncPreview()">
         </div>
         <div class="flex items-center pt-5">
           <label class="inline-flex items-center cursor-pointer">
@@ -173,6 +179,7 @@
       </div>
     </section>
 
+    <!-- Rapport d'Intervention -->
     <section class="bg-white rounded-xl shadow p-5 border border-slate-200">
       <h2 class="text-lg font-bold text-blue-800 border-b pb-2 mb-4">2. Rapport d'Intervention</h2>
 
@@ -197,8 +204,8 @@
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1">DATE ARRÊT</label>
-          <input type="text" id="in_date_arret" placeholder="JJ/MM/AAAA HH:MM" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+          <label class="block text-xs font-semibold text-gray-600 mb-1">DATE ARRÊT (تلقائي)</label>
+          <input type="text" id="in_date_arret" placeholder="JJ/MM/AAAA HH:MM" class="w-full border rounded p-2 text-sm bg-blue-50 font-medium" oninput="syncPreview()">
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-600 mb-1">OF N°</label>
@@ -212,8 +219,8 @@
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1">DATE REPRISE</label>
-          <input type="text" id="in_date_reprise" placeholder="JJ/MM/AAAA HH:MM" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+          <label class="block text-xs font-semibold text-gray-600 mb-1">DATE REPRISE (تلقائي)</label>
+          <input type="text" id="in_date_reprise" placeholder="JJ/MM/AAAA HH:MM" class="w-full border rounded p-2 text-sm bg-blue-50 font-medium" oninput="syncPreview()">
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-600 mb-1">DUREE ARRÊT (H)</label>
@@ -287,18 +294,20 @@
       </div>
     </section>
 
+    <!-- الأزرار -->
     <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
       <button onclick="generateAndSharePDF()" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg flex items-center justify-center gap-2">
         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.699c.971.532 1.77.814 2.797.814 3.179 0 5.767-2.587 5.768-5.766 0-3.18-2.588-5.766-5.769-5.766zm0-2.172c4.418 0 8 3.582 8 8 0 4.419-3.582 8-8 8-1.42 0-2.75-.371-3.906-1.016l-4.125 1.082 1.101-4.025c-.694-1.196-1.07-2.574-1.07-4.041 0-4.418 3.582-8 8-8z"/></svg>
         إرسال عبر واتساب بصيغة PDF
       </button>
-      <button onclick="downloadDirectPDF()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg">
+      <button onclick="downloadDirectPDF()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg flex items-center justify-center gap-2">
         تحميل PDF مباشرة
       </button>
     </div>
 
+    <!-- قالب A4 الطباعي المماثل للأصل 100% -->
     <div style="overflow-x: auto; background: #64748b; padding: 20px; border-radius: 12px;">
-      <p class="text-white text-xs font-bold mb-2 text-center">معاينة ورقة A4 الرسمية (Aperçu Document A4)</p>
+      <p class="text-white text-xs font-bold mb-2 text-center">معاينة ورقة A4 الرسمية المطبوعة (Aperçu Document A4)</p>
       
       <div id="pdf-container">
         <div class="pdf-title">Fiche Demande Intervention</div>
@@ -488,6 +497,38 @@
   </main>
 
   <script>
+    // تسجيل التاريخ والوقت تلقائياً عند فتح التطبيق
+    function setAutomaticDateTime() {
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      const day = pad(now.getDate());
+      const month = pad(now.getMonth() + 1);
+      const year = now.getFullYear();
+      const hours = pad(now.getHours());
+      const minutes = pad(now.getMinutes());
+
+      const dateStr = `${day}/${month}/${year}`;
+      const dateTimeStr = `${dateStr} ${hours}:${minutes}`;
+
+      const dateDinEl = document.getElementById('in_date_din');
+      if (dateDinEl && !dateDinEl.value) {
+        dateDinEl.value = dateStr;
+      }
+
+      const dateArretEl = document.getElementById('in_date_arret');
+      if (dateArretEl && !dateArretEl.value) {
+        dateArretEl.value = dateTimeStr;
+      }
+
+      const dateRepriseEl = document.getElementById('in_date_reprise');
+      if (dateRepriseEl && !dateRepriseEl.value) {
+        dateRepriseEl.value = dateTimeStr;
+      }
+
+      syncPreview();
+    }
+
+    // تحديث المعاينة الحية فور كتابة أي حرف
     function syncPreview() {
       document.getElementById('out_din').innerText = document.getElementById('in_din').value || '........';
       document.getElementById('out_date_din').innerText = document.getElementById('in_date_din').value || '../../....';
@@ -533,6 +574,7 @@
       document.getElementById('out_avis_maint').innerText = document.getElementById('in_avis_maint').value;
     }
 
+    // حساب التكاليف تلقائياً
     function calcTotals() {
       let totalPieces = 0;
       let totalCost = 0;
@@ -549,45 +591,63 @@
       if ((totalCost + moCost) > 0) document.getElementById('in_cout_total').value = (totalCost + moCost).toFixed(2);
     }
 
+    function getFileName() {
+      const din = document.getElementById('in_din').value.trim() || 'Intervention';
+      return `Fiche_${din.replace(/[\/\\:*?"<>|]/g, '_')}.pdf`;
+    }
+
+    // تنزيل ملف الـ PDF مباشرة على الهاتف
     async function downloadDirectPDF() {
       syncPreview();
       const element = document.getElementById('pdf-container');
       const opt = {
         margin:       [0, 0, 0, 0],
-        filename:     'Demande_Intervention_' + (document.getElementById('in_din').value || 'A4') + '.pdf',
+        filename:     getFileName(),
         image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true },
+        html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
-      html2pdf().set(opt).from(element).save();
+      await html2pdf().set(opt).from(element).save();
     }
 
+    // إنشاء ومشاركة ملف الـ PDF عبر الواتساب ومشاركات الهاتف
     async function generateAndSharePDF() {
       syncPreview();
       const element = document.getElementById('pdf-container');
+      const fileName = getFileName();
       const opt = {
         margin:       [0, 0, 0, 0],
-        filename:     'Demande_Intervention_' + (document.getElementById('in_din').value || 'A4') + '.pdf',
+        filename:     fileName,
         image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true },
+        html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
+
       try {
-        const blob = await html2pdf().set(opt).from(element).output('blob');
-        const file = new File([blob], opt.filename, { type: 'application/pdf' });
+        const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             files: [file],
-            title: 'Fiche Demande & Rapport d'Intervention',
-            text: 'Veuillez trouver ci-joint la fiche d'intervention en format PDF.'
+            title: "Fiche d'Intervention GMAO",
+            text: "يرجى الاطلاع على تقرير واستمارة الصيانة المرفقة بصيغة PDF."
           });
         } else {
-          downloadDirectPDF();
+          // إذا كان المتصفح أو بيئة الجهاز لا تدعم مشاركة الملفات المباشرة، يتم تنزيل الملف فوراً
+          await html2pdf().set(opt).from(element).save();
+          alert("تم حفظ ملف الـ PDF على هاتفك بنجاح! يمكنك الآن إرساله مباشرة عبر تطبيق الواتساب.");
         }
-      } catch (e) {
-        downloadDirectPDF();
+      } catch (err) {
+        console.error(err);
+        await html2pdf().set(opt).from(element).save();
       }
     }
+
+    // تشغيل الملء التلقائي للتاريخ عند تحميل الصفحة
+    window.addEventListener('DOMContentLoaded', () => {
+      setAutomaticDateTime();
+    });
   </script>
 </body>
-</html>
+</html
