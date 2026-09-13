@@ -131,8 +131,42 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
-          <label class="block text-xs font-semibold text-gray-600 mb-1">EQUIPEMENT</label>
-          <input type="text" id="in_equipement" class="w-full border rounded p-2 text-sm" oninput="syncPreview()">
+          <label class="block text-xs font-semibold text-gray-600 mb-1">EQUIPEMENT (اختر الآلة)</label>
+          <select id="in_equipement" class="w-full border rounded p-2 text-sm bg-white font-medium focus:ring-2 focus:ring-blue-500" onchange="syncPreview()">
+            <option value="">-- Choisir un équipement --</option>
+            <option value="W249">W249</option>
+            <option value="W102">W102</option>
+            <option value="W202">W202</option>
+            <option value="WB2s">WB2s</option>
+            <option value="W86">W86</option>
+            <option value="W141">W141</option>
+            <option value="MGA">MGA</option>
+            <option value="SUPERJET">SUPERJET</option>
+            <option value="BT40">BT40</option>
+            <option value="MASSICOT">MASSICOT</option>
+            <option value="PLLATINE">PLLATINE</option>
+            <option value="DEBOBINEUSE">DEBOBINEUSE</option>
+            <option value="ROUFONDEUSE">ROUFONDEUSE</option>
+            <option value="JS330">JS330</option>
+            <option value="KOTAPAC">KOTAPAC</option>
+            <option value="ROULEUSE">ROULEUSE</option>
+            <option value="PRESSE">PRESSE</option>
+            <option value="POMPE ARZEN VARIABL D36">POMPE ARZEN VARIABL D36</option>
+            <option value="POMPE ARZEN FIX">POMPE ARZEN FIX</option>
+            <option value="POMPE ARZEN VARIABLE DELTA SCRAW">POMPE ARZEN VARIABLE DELTA SCRAW</option>
+            <option value="POMPE SUF ARZEN">POMPE SUF ARZEN</option>
+            <option value="POMPE SUF HIBON">POMPE SUF HIBON</option>
+            <option value="POMPE VID HIBON">POMPE VID HIBON</option>
+            <option value="GROUPE ELECTROGENE">GROUPE ELECTROGENE</option>
+            <option value="IVECO2023">IVECO2023</option>
+            <option value="IVECO2025 1">IVECO2025 1</option>
+            <option value="IVECO2025 2">IVECO2025 2</option>
+            <option value="FIAT">FIAT</option>
+            <option value="PEUGOT">PEUGOT</option>
+            <option value="SCANIA">SCANIA</option>
+            <option value="MASTER2011">MASTER2011</option>
+            <option value="MASTER2014">MASTER2014</option>
+          </select>
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-600 mb-1">STATION</label>
@@ -650,4 +684,4 @@
     });
   </script>
 </body>
-</html
+</html>
